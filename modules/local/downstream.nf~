@@ -1,0 +1,14 @@
+process initial_diagnostics {
+    memory "30 GB"
+    cpus 1
+    input:
+	tuple val(meta),
+	      val(parquets)
+    output:
+	path "concatemer_analysis.rds"
+   """
+    export RSCRIPT_PATH=\$(echo "${baseDir}/bin/analyze_concats.R")
+    Rscript \$RSCRIPT_PATH ${parquets}
+
+    """
+}

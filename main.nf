@@ -33,6 +33,11 @@ include {
    createBed
 } from './modules/local/4dn'
 
+include {
+   parquet2gr
+   initial_diagnostics
+} from './modules/local/downstream'
+
 
 include { prepare_genome } from "./subworkflows/local/prepare_genome"
 
@@ -327,7 +332,12 @@ workflow POREC {
                 .chromunity_pq
                 .groupTuple()
             )
+	    if (params.downstream) {
+	    	 concatemers = parquet2gr(chromunity_pq)
+		 init = initial_diagnostics(concatemers) ////ALL DOWNSTREAM PIPELINE
+            }
         }
+
 
         /// Paired end bams
         if (params.paired_end) {
@@ -369,8 +379,7 @@ workflow POREC {
         filtered_reads = named_filtered_read_ids.join(named_reads, remainder:false)
         // Retrieve filtered out BAM from list of filtered reads per sample
         filtered_out = get_filtered_out_bam(filtered_reads)
-
-
+	
     emit:
         name_sorted_bam = ns_bam
         coord_sorted_bam = cs_bam
@@ -382,8 +391,13 @@ workflow {
     if (params.containsKey("params_sheet")) {
         error = "`--params_sheet` parameter is deprecated. Use parameter `--sample_sheet` instead."
     }
-    POREC()
-    output(POREC.out.stats)
+    if (params.concatemers) {
+       init = initial_diagnostics(params.concatemers)
+    } else {
+       POREC()
+       output(POREC.out.stats)
+    }
+
 }
 
 workflow.onComplete {
